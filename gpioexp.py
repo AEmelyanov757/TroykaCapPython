@@ -1,8 +1,8 @@
 # The MIT License (MIT)
 
-import wiringpi as wp
+import pigpio as wp
 
-GPIO_EXPANDER_DEFAULT_I2C_ADDRESS   = 0X2A
+GPIO_EXPANDER_DEFAULT_I2C_ADDRESS   = 0x2A
 GPIO_EXPANDER_WHO_AM_I              = 0x00
 GPIO_EXPANDER_RESET                 = 0x01
 GPIO_EXPANDER_CHANGE_I2C_ADDR       = 0x02
@@ -44,17 +44,16 @@ class gpioexp(object):
 
     def __init__(self, gpioexp_address=GPIO_EXPANDER_DEFAULT_I2C_ADDRESS):
 
-        # Setup I2C interface for accelerometer and magnetometer.
-        wp.wiringPiSetup()
-        self._i2c = wp.I2C()
-        self._io = self._i2c.setupInterface('/dev/i2c-' + str(getPiI2CBusNumber()), gpioexp_address)
-#        self._gpioexp.write_byte(self._addr, GPIO_EXPANDER_RESET)
+        # Setup I2C interface
+        self.pi = wp.pi() # open local Pi
+        self._i2c = self.pi.i2c_open(getPiI2CBusNumber(),gpioexp_address)
+
     def reverse_uint16(self, data):
         result = ((data & 0xff) << 8) | ((data>>8) & 0xff)
         return result
 
     def digitalReadPort(self):
-        port = self.reverse_uint16(self._i2c.readReg16(self._io, GPIO_EXPANDER_DIGITAL_READ))
+        port = self.reverse_uint16(self.pi.i2c_read_word_data(self._i2c,GPIO_EXPANDER_DIGITAL_READ))
         return port
 
     def digitalRead(self, pin):
@@ -66,47 +65,47 @@ class gpioexp(object):
 
     def digitalWritePort(self, value):
         value = self.reverse_uint16(value)
-        self._i2c.writeReg16(self._io, GPIO_EXPANDER_DIGITAL_WRITE_HIGH, value)
-        self._i2c.writeReg16(self._io, GPIO_EXPANDER_DIGITAL_WRITE_LOW, ~value)
+        self.pi.i2c_write_word_data(self._i2c,GPIO_EXPANDER_DIGITAL_WRITE_HIGH, value)
+        self.pi.i2c_write_word_data(self._i2c,GPIO_EXPANDER_DIGITAL_WRITE_LOW, ~value)
 
     def digitalWrite(self, pin, value):
         sendData = self.reverse_uint16(0x0001<<pin)
         if value:
-            self._i2c.writeReg16(self._io, GPIO_EXPANDER_DIGITAL_WRITE_HIGH, sendData)
+            self.pi.i2c_write_word_data(self._i2c,GPIO_EXPANDER_DIGITAL_WRITE_HIGH, sendData)
         else:
-            self._i2c.writeReg16(self._io, GPIO_EXPANDER_DIGITAL_WRITE_LOW, sendData)
+            self.pi.i2c_write_word_data(self._i2c,GPIO_EXPANDER_DIGITAL_WRITE_LOW, sendData)
 
     def analogRead16(self, pin):
-        self._i2c.writeReg16(self._io, GPIO_EXPANDER_ANALOG_READ, pin)
-        return self.reverse_uint16(self._i2c.readReg16(self._io, GPIO_EXPANDER_ANALOG_READ))
+        self.pi.i2c_write_word_data(self._i2c,GPIO_EXPANDER_ANALOG_READ, pin)
+        return self.reverse_uint16(self.pi.i2c_read_word_data(self._i2c,GPIO_EXPANDER_ANALOG_READ))
 
     def analogRead(self, pin):
         return self.analogRead16(pin)/4095.0
 
     def pwmFreq(self, freq):
-        self._i2c.writeReg16(self._io, GPIO_EXPANDER_PWM_FREQ, self.reverse_uint16(freq))
+        self.pi.i2c_write_word_data(self._i2c,GPIO_EXPANDER_PWM_FREQ, self.reverse_uint16(freq))
 
     def changeAddr(self, newAddr):
-        self._i2c.writeReg16(self._io, GPIO_EXPANDER_CHANGE_I2C_ADDR, newAddr)
+        self.pi.i2c_write_word_data(self._i2c,GPIO_EXPANDER_CHANGE_I2C_ADDR, newAddr)
 
     def saveAddr(self):
-        self._i2c.write(self._io, GPIO_EXPANDER_SAVE_I2C_ADDR)
+        self.pi.i2c_write_device(self._i2c,GPIO_EXPANDER_SAVE_I2C_ADDR)
 
     def reset(self):
-        self._i2c.write(self._io, GPIO_EXPANDER_RESET)
+        self.pi.i2c_write_device(self._i2c,GPIO_EXPANDER_RESET)
 
     def pinMode(self, pin, mode):
         sendData = self.reverse_uint16(0x0001<<pin)
         if (mode == INPUT):
-            self._i2c.writeReg16(self._io, GPIO_EXPANDER_PORT_MODE_INPUT, sendData)
+            self.pi.i2c_write_word_data(self._i2c,GPIO_EXPANDER_PORT_MODE_INPUT, sendData)
         if (mode == INPUT_PULLUP):
-            self._i2c.writeReg16(self._io, GPIO_EXPANDER_PORT_MODE_PULLUP, sendData)
+            self.pi.i2c_write_word_data(self._i2c,GPIO_EXPANDER_PORT_MODE_PULLUP, sendData)
         if (mode == INPUT_PULLDOWN):
-            self._i2c.writeReg16(self._io, GPIO_EXPANDER_PORT_MODE_PULLDOWN, sendData)
+            self.pi.i2c_write_word_data(self._i2c,GPIO_EXPANDER_PORT_MODE_PULLDOWN, sendData)
         if (mode == OUTPUT):
-            self._i2c.writeReg16(self._io, GPIO_EXPANDER_PORT_MODE_OUTPUT, sendData)
+            self.pi.i2c_write_word_data(self._i2c,GPIO_EXPANDER_PORT_MODE_OUTPUT, sendData)
 
     def analogWrite(self, pin, value):
         value = int(value*255)
         data = (pin & 0xff)|((value & 0xff)<<8)
-        self._i2c.writeReg16(self._io, GPIO_EXPANDER_ANALOG_WRITE, data)
+        self.pi.i2c_write_word_data(self._i2c,GPIO_EXPANDER_ANALOG_WRITE, data)
