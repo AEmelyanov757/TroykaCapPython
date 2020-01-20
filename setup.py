@@ -2,10 +2,9 @@ from setuptools import setup
 
 setup(
     name = 'TroykaCapPython',
-    version = '1.0',
+    version = '0.1',
     description = 'TroykaCapPython',
-    author = 'acosinwork',
-    author_email = 'vasily@amperka.ru',
-    url = 'amperka.ru',
+    author = 'AEmelyanov757',
+    author_email = 'aemelyanov757@gmail.com',
     py_modules=['gpioexp'],
 )
