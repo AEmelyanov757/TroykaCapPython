@@ -2,13 +2,19 @@
 import gpioexp, time
 
 exp = gpioexp.gpioexp() # создаём объект для работы с расширителем портов 
-pot = 0 # положение сервопривода начальное
+pot = 2.5 # положение сервопривода начальное
+out = 0.0
+
+exp.pwmFreq(60)
 
 while True:
     # меняем положение сервопривода на порте 0 каждые 5 секунд
-    exp.analogWrite(0, pot)
-    if pot < 255:
-        pot = pot + 1
+    # 2.5-12.5 % заполнения управляющего сигнала
+    if pot < 12.5:
+        pot = pot + 0.1
     else:
-        pot = 0
+        pot = 2.5
+    out = pot/100 # значение от 0 до 1!
+    exp.analogWrite(1,out)
+    print(pot)
     time.sleep(5)
